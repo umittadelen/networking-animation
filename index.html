@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Floating Points Network</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+            background: #1f1f1f;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const points = [];
+        const pointCount = 150; // Number of points
+        const maxDistance = 150; // Max distance for connecting points
+        const maxConnections = 3; // Max connections per point
+        const baseSpeed = 0.5; // Base speed of point movement
+        const mouse = { x: null, y: null, clicked: false }; // Mouse position and click state
+
+        // Generate random points with initial velocity
+        for (let i = 0; i < pointCount; i++) {
+            points.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                angle: Math.random() * Math.PI * 2 // Random angle for initial movement
+            });
+        }
+
+        // Event listener for mouse movement
+        canvas.addEventListener('mousemove', (event) => {
+            mouse.x = event.clientX;
+            mouse.y = event.clientY;
+        });
+
+        // Event listener for mouse click
+        canvas.addEventListener('mousedown', () => {
+            mouse.clicked = true;
+        });
+
+        // Event listener for mouse release
+        canvas.addEventListener('mouseup', () => {
+            mouse.clicked = false;
+        });
+
+        function drawPoints() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // Draw each point
+            points.forEach(point => {
+                ctx.beginPath();
+                ctx.arc(point.x, point.y, 3, 0, Math.PI * 2);
+                ctx.fillStyle = '#ff0'; // Point color
+                ctx.fill();
+            });
+        }
+
+        function connectClosestPoints() {
+            points.forEach((p1, i) => {
+                const connections = []; // Store closest points
+                for (let j = 0; j < points.length; j++) {
+                    if (i !== j) {
+                        const p2 = points[j];
+                        const distance = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+                        if (distance < maxDistance) {
+                            connections.push({ point: p2, distance });
+                        }
+                    }
+                }
+
+                // Sort connections by distance and keep only the closest ones
+                connections.sort((a, b) => a.distance - b.distance);
+                const closestPoints = connections.slice(0, maxConnections);
+
+                // Draw lines to the closest points
+                closestPoints.forEach(conn => {
+                    ctx.beginPath();
+                    ctx.moveTo(p1.x, p1.y);
+                    ctx.lineTo(conn.point.x, conn.point.y);
+                    ctx.strokeStyle = '#ff0'; // Line color
+                    ctx.stroke();
+                });
+            });
+        }
+
+        function updatePoints() {
+            points.forEach(point => {
+                // Move in the direction of the current angle
+                point.x += Math.cos(point.angle) * baseSpeed;
+                point.y += Math.sin(point.angle) * baseSpeed;
+
+                // Bounce off the edges
+                if (point.x < 0 || point.x > canvas.width) {
+                    point.angle = Math.PI - point.angle; // Reverse direction horizontally
+                }
+                if (point.y < 0 || point.y > canvas.height) {
+                    point.angle = -point.angle; // Reverse direction vertically
+                }
+
+                // Attract to mouse position when clicked
+                if (mouse.clicked && mouse.x !== null && mouse.y !== null) {
+                    const dx = mouse.x - point.x;
+                    const dy = mouse.y - point.y;
+                    const distance = Math.hypot(dx, dy);
+                    
+                    // Apply attraction only if within a certain range
+                    if (distance < 150) {
+                        const force = 0.1; // Attraction force
+                        point.angle = Math.atan2(dy, dx); // Change angle towards mouse
+                    }
+                }
+            });
+        }
+
+        function animate() {
+            updatePoints();
+            drawPoints();
+            connectClosestPoints();
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+    </script>
+</body>
+</html>
